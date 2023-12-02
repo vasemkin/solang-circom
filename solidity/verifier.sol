@@ -164,7 +164,7 @@ library Pairing {
 }
 
 @program_id("FaAbS83pjtas4kHid7PwZuPBS1uuJi2asRihhFghCq92") // on-chain program address
-contract verifier {
+contract Verifier {
     using Pairing for *;
     struct VerifyingKey {
         Pairing.G1Point alfa1;
