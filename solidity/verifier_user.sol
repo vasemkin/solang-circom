@@ -18,4 +18,8 @@ contract verifier_user {
         return _verifier;
     }
 
+    // function verify() {
+        // verifier.testGetter()
+    // }
+
 }
