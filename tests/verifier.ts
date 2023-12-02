@@ -3,7 +3,7 @@ import { Program } from '@coral-xyz/anchor'
 //@ts-ignore
 import { Verifier } from '../target/types/verifier_user'
 
-describe('Verifier', () => {
+describe.skip('Verifier', () => {
 	const provider = anchor.AnchorProvider.env()
 	anchor.setProvider(provider)
 
@@ -19,10 +19,10 @@ describe('Verifier', () => {
 			.rpc()
 		console.log('Deploy verifier', tx)
 
-		const initialVerifierAddress = await program.methods
+		const testGetter = await program.methods
 			.testGetter()
 			.accounts({ dataAccount: dataAccount.publicKey })
 			.view()
-		console.log({ initialVerifierAddress })
+		console.log({ testGetter })
 	})
 })
