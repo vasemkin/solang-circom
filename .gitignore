@@ -6,3 +6,17 @@ target
 node_modules
 test-ledger
 .yarn
+
+
+node_modules
+.env
+coverage
+coverage.json
+typechain
+typechain-types
+
+# ZK
+solidity/*.sol-e
+/build/
+/dist/
+/.parcel-cache/

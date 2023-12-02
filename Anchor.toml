@@ -6,6 +6,7 @@ skip-lint = false
 
 [programs.localnet]
 verifier_user = "2sB1sNVQ412kzS5JkNhBCrg33BMvyV3q9Tvq1LzBJBXn"
+verifier = "FaAbS83pjtas4kHid7PwZuPBS1uuJi2asRihhFghCq92"
 
 [registry]
 url = "https://api.apr.dev"
