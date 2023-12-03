@@ -17,6 +17,9 @@ default = []
 
 [dependencies]
 anchor-lang = "0.29.0"
+solana-program = "1.16.3"
+array-bytes = "6.2.0"
+
 # bn = { git = "https://github.com/paritytech/bn", default-features = false, rev = "6079255e" }
 # ethereum-types = "0.3"
 # rustc-hex = "1.0"
