@@ -1,0 +1,22 @@
+[package]
+name = "curves"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "curves"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+# bn = { git = "https://github.com/paritytech/bn", default-features = false, rev = "6079255e" }
+# ethereum-types = "0.3"
+# rustc-hex = "1.0"

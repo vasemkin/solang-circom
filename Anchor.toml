@@ -8,6 +8,7 @@ skip-lint = false
 verifier_user = "2sB1sNVQ412kzS5JkNhBCrg33BMvyV3q9Tvq1LzBJBXn"
 simpler_storage = "42av5xMETnHvp2o7maUGqpLZNGzFqiLj1W3YAPN75J9i"
 Verifier = "FaAbS83pjtas4kHid7PwZuPBS1uuJi2asRihhFghCq92"
+curves = "GiM4xoMCQSCZNioTiALPSYHfhNGCEnKX16gKTK51JbXN"
 
 [registry]
 url = "https://api.apr.dev"
