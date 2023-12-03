@@ -1,3 +1,6 @@
+import { curves } from "./curves.sol";
+import "solana";
+
 //
 // Copyright 2017 Christian Reitwiessner
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -22,6 +25,7 @@ library Pairing {
         uint[2] X;
         uint[2] Y;
     }
+
     /// @return the generator of G1
     function P1() internal pure returns (G1Point memory) {
         return G1Point(1, 2);
@@ -54,39 +58,96 @@ library Pairing {
             return G1Point(0, 0);
         return G1Point(p.X, q - (p.Y % q));
     }
+
+    function bytes32ToUint(bytes memory data, uint n) public pure returns (uint result) {
+        require(n * 32 + 32 <= data.length, "Index out of bounds");
+
+        for (uint i = 0; i < 32; i++) {
+            result |= uint(uint8(data[n * 32 + i])) << (8 * (31 - i));
+        }
+    }
+
+    function concat(bytes memory a, bytes memory b, bytes memory c, bytes memory d) internal pure returns (bytes memory) {
+        return abi.encodePacked(a, b, c, d);
+    }
+
+    function concat3(bytes memory a, bytes memory b, bytes memory c) internal pure returns (bytes memory) {
+        return abi.encodePacked(a, b, c);
+    }
+
+     function uintArrayToBytes(uint[] memory arr) public pure returns (bytes memory) {
+         // Calculate the total bytes required
+        // Assuming each uint is a uint256, which is 32 bytes
+        uint totalBytes = arr.length * 32;
+        bytes memory b = new bytes(totalBytes);
+
+        uint byteIndex = 0;
+        for (uint i = 0; i < arr.length; i++) {
+            // Convert uint to bytes and store in the bytes array
+            for(uint j = 0; j < 32; j++) {
+                b[byteIndex++] = bytes32(arr[i])[j];
+            }
+        }
+
+        return b;
+    }
+
     /// @return r the sum of two points of G1
     function addition(G1Point memory p1, G1Point memory p2) internal view returns (G1Point memory r) {
-        uint[4] memory input;
-        input[0] = p1.X;
-        input[1] = p1.Y;
-        input[2] = p2.X;
-        input[3] = p2.Y;
-        bool success;
-        // solium-disable-next-line security/no-inline-assembly
+        // Declare rustCalldata as bytes
+        bytes memory rustCalldata = concat(
+            bytes32(p1.X), 
+            bytes32(p1.Y), 
+            bytes32(p2.X), 
+            bytes32(p2.Y)
+        );
 
-        assembly {
-            success := true
-            // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid() }
-        }
-        require(success,"pairing-add-failed");
+        bytes result = curves.addition{accounts: []}(rustCalldata);        
+
+        r.X = bytes32ToUint(result, 0);
+        r.Y = bytes32ToUint(result, 1);
     }
+
     /// @return r the product of a point on G1 and a scalar, i.e.
     /// p == p.scalar_mul(1) and p.addition(p) == p.scalar_mul(2) for all points p.
     function scalar_mul(G1Point memory p, uint s) internal view returns (G1Point memory r) {
-        uint[3] memory input;
-        input[0] = p.X;
-        input[1] = p.Y;
-        input[2] = s;
-        bool success;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            success := true
-            // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid() }
-        }
-        require (success,"pairing-mul-failed");
+         // Declare rustCalldata as bytes
+        bytes memory rustCalldata = concat3(
+            bytes32(p.X), 
+            bytes32(p.Y), 
+            bytes32(s)
+        );
+
+        bytes result = curves.multiplication{accounts: []}(rustCalldata);        
+
+        r.X = bytes32ToUint(result, 0);
+        r.Y = bytes32ToUint(result, 1);        
     }
+
+
+    function pairingTest(G1Point[] memory p1, G2Point[] memory p2) internal view returns (bytes) {
+        require(p1.length == p2.length,"pairing-lengths-failed");
+        uint elements = p1.length;
+        uint inputSize = elements * 6;
+        uint[] memory input = new uint[](inputSize);
+        for (uint i = 0; i < elements; i++)
+        {
+            input[i * 6 + 0] = p1[i].X;
+            input[i * 6 + 1] = p1[i].Y;
+            input[i * 6 + 2] = p2[i].X[0];
+            input[i * 6 + 3] = p2[i].X[1];
+            input[i * 6 + 4] = p2[i].Y[0];
+            input[i * 6 + 5] = p2[i].Y[1];
+        }
+        uint[1] memory out;
+
+        bytes memory rustCalldata = uintArrayToBytes(input);
+
+        bytes result = curves.pairing{accounts: []}(rustCalldata);       
+
+        return (result);
+    }
+
     /// @return the result of computing the pairing check
     /// e(p1[0], p2[0]) *  .... * e(p1[n], p2[n]) == 1
     /// For example pairing([P1(), P1().negate()], [P2(), P2()]) should
@@ -106,15 +167,12 @@ library Pairing {
             input[i * 6 + 5] = p2[i].Y[1];
         }
         uint[1] memory out;
-        bool success;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            success := true
-            // Use "invalid" to make gas estimation work
-            switch success case 0 { invalid() }
-        }
-        require(success,"pairing-opcode-failed");
-        return out[0] != 0;
+
+        bytes memory rustCalldata = uintArrayToBytes(input);
+
+        bytes result = curves.pairing{accounts: []}(rustCalldata);       
+
+        return (result.length != 0);
     }
     /// Convenience method for a pairing check for two pairs.
     function pairingProd2(G1Point memory a1, G2Point memory a2, G1Point memory b1, G2Point memory b2) internal view returns (bool) {
@@ -179,12 +237,48 @@ contract Verifier {
         Pairing.G1Point C;
     }
 
+
     @payer(payer)
     constructor() {}
 
     function testGetter() public pure returns (bool) {
         return true;
     }
+
+
+
+    function tryAddition() public view returns (Pairing.G1Point memory r) {
+        return Pairing.addition(verifyingKey().IC[0], verifyingKey().IC[1]);
+    }
+
+    function tryMul() public view returns (Pairing.G1Point memory init, Pairing.G1Point memory r) {
+        return (Pairing.G1Point( 
+            6819801395408938350212900248749732364821477541620635511814266536599629892365,
+            9092252330033992554755034971584864587974280972948086568597554018278609861372
+        ), Pairing.scalar_mul(verifyingKey().IC[0], 1));
+    }
+
+
+    function tryPairing() public view returns (bytes) {
+        Pairing.G1Point[] memory p1Inputs = new Pairing.G1Point[](1);
+
+        p1Inputs[0] = Pairing.G1Point( 
+            6819801395408938350212900248749732364821477541620635511814266536599629892365,
+            9092252330033992554755034971584864587974280972948086568597554018278609861372
+        );
+
+        Pairing.G2Point[] memory p2Inputs = new Pairing.G2Point[](1);
+
+        p2Inputs[0] = Pairing.G2Point(
+            [4252822878758300859123897981450591353533073413197771768651442665752259397132,
+             6375614351688725206403948262868962793625744043794305715222011528459656738731],
+            [21847035105528745403288232691147584728191162732299865338377159692350059136679,
+             10505242626370262277552901082094356697409835680220590971873171140371331206856]
+        );
+
+        return Pairing.pairingTest(p1Inputs, p2Inputs);
+    }
+
 
     function verifyingKey() internal pure returns (VerifyingKey memory vk) {
         vk.alfa1 = Pairing.G1Point(
@@ -226,21 +320,26 @@ contract Verifier {
     function verify(uint[] memory input, Proof memory proof) internal view returns (uint) {
         uint256 snark_scalar_field = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
         VerifyingKey memory vk = verifyingKey();
+        
         require(input.length + 1 == vk.IC.length,"verifier-bad-input");
         // Compute the linear combination vk_x
         Pairing.G1Point memory vk_x = Pairing.G1Point(0, 0);
+
         for (uint i = 0; i < input.length; i++) {
             require(input[i] < snark_scalar_field,"verifier-gte-snark-scalar-field");
             vk_x = Pairing.addition(vk_x, Pairing.scalar_mul(vk.IC[i + 1], input[i]));
         }
-        vk_x = Pairing.addition(vk_x, vk.IC[0]);
-        if (!Pairing.pairingProd4(
-            Pairing.negate(proof.A), proof.B,
-            vk.alfa1, vk.beta2,
-            vk_x, vk.gamma2,
-            proof.C, vk.delta2
-        )) return 1;
-        return 0;
+
+        return input.length;
+        
+        // vk_x = Pairing.addition(vk_x, vk.IC[0]);
+        // if (!Pairing.pairingProd4(
+        //     Pairing.negate(proof.A), proof.B,
+        //     vk.alfa1, vk.beta2,
+        //     vk_x, vk.gamma2,
+        //     proof.C, vk.delta2
+        // )) return 1;
+        // return 0;
     }
     /// @return r  bool true if proof is valid
     function verifyProof(
@@ -248,19 +347,26 @@ contract Verifier {
             uint[2][2] memory b,
             uint[2] memory c,
             uint[1] memory input
-        ) public view returns (bool r) {
+        ) public view returns (uint r) {
+        
         Proof memory proof;
+
+        
         proof.A = Pairing.G1Point(a[0], a[1]);
         proof.B = Pairing.G2Point([b[0][0], b[0][1]], [b[1][0], b[1][1]]);
         proof.C = Pairing.G1Point(c[0], c[1]);
         uint[] memory inputValues = new uint[](input.length);
+        
+
         for(uint i = 0; i < input.length; i++){
             inputValues[i] = input[i];
         }
-        if (verify(inputValues, proof) == 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return verify(inputValues, proof);
+
+        // if (verify(inputValues, proof) == 0) {
+        //     return true;
+        // } else {
+        //     return false;
+        // }
     }
 }

@@ -4,7 +4,7 @@ import { Program } from '@coral-xyz/anchor'
 import { VerifierUser } from '../target/types/verifier_user'
 import { Verifier } from '../target/types/Verifier'
 
-describe.only('VerifierUser', () => {
+describe('VerifierUser', () => {
 	const provider = anchor.AnchorProvider.env()
 	anchor.setProvider(provider)
 

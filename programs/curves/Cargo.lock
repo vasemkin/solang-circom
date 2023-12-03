@@ -298,12 +298,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "array-bytes"
-version = "6.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de17a919934ad8c5cc99a1a74de4e2dab95d6121a8f27f94755ff525b630382c"
-
-[[package]]
 name = "arrayref"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -673,15 +667,6 @@ dependencies = [
  "serde",
  "subtle",
  "zeroize",
-]
-
-[[package]]
-name = "curves"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "array-bytes",
- "solana-program",
 ]
 
 [[package]]
